@@ -1,0 +1,12 @@
+images/
+langrest/
+!lang/ca/
+
+*.txt
+*.js
+*.css
+
+!admin.php
+!.gitignore
+
+
