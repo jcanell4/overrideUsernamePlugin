@@ -82,6 +82,7 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
     public function handle() {
         global $INPUT;
         if (is_null($this->_auth)) return false;
+        $ret = TRUE;
 
         // extract the command and any specific parameters
         // submit button name is of the form - fn[cmd][param(s)]
@@ -101,10 +102,10 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
         }
 
         switch($cmd){
-            case "add"    : $this->_addUser(); break;
-            case "delete" : $this->_deleteUser(); break;
-            case "modify" : $this->_modifyUser(); break;
-            case "edit"   : $this->_editUser($param); break;
+            case "add"    : $ret = $this->_addUser(); break;
+            case "delete" : $ret = $this->_deleteUser(); break;
+            case "modify" : $ret = $this->_modifyUser(); break;
+            case "edit"   : $ret = $this->_editUser($param); break;
             case "search" : $this->_setFilter($param);
                             $this->_start = 0;
                             break;
@@ -112,6 +113,8 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
             case "import" : $this->_import(); break;
             case "importfails" : $this->_downloadImportFailures(); break;
         }
+
+        if (!$ret) return $ret;
 
         $this->_user_total = $this->_auth->canDo('getUserCount') ? $this->_auth->getUserCount($this->_filter) : -1;
 
@@ -438,23 +441,23 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
             ptln('  <table class="import_failures">',$indent);
             ptln('    <thead>',$indent);
             ptln('      <tr>',$indent);
-            ptln('        <th class="line">'.$this->lang['line'].'</th>',$indent);
-            ptln('        <th class="error">'.$this->lang['error'].'</th>',$indent);
-            ptln('        <th class="userid">'.$this->lang['user_id'].'</th>',$indent);
-            ptln('        <th class="username">'.$this->lang['user_name'].'</th>',$indent);
-            ptln('        <th class="usermail">'.$this->lang['user_mail'].'</th>',$indent);
-            ptln('        <th class="usergroups">'.$this->lang['user_groups'].'</th>',$indent);
+            ptln('        <th class="line"> | '.$this->lang['line'].'</th>',$indent);
+            ptln('        <th class="error"> | '.$this->lang['error'].'</th>',$indent);
+            ptln('        <th class="userid"> | '.$this->lang['user_id'].'</th>',$indent);
+            ptln('        <th class="username"> | '.$this->lang['user_name'].'</th>',$indent);
+            ptln('        <th class="usermail"> | '.$this->lang['user_mail'].'</th>',$indent);
+            ptln('        <th class="usergroups"> | '.$this->lang['user_groups'].'</th>',$indent);
             ptln('      </tr>',$indent);
             ptln('    </thead>',$indent);
             ptln('    <tbody>',$indent);
             foreach ($this->_import_failures as $line => $failure) {
                 ptln('      <tr>',$indent);
-                ptln('        <td class="lineno"> '.sprintf('%0'.$digits.'d',$line).' </td>',$indent);
-                ptln('        <td class="error">' .$failure['error'].' </td>', $indent);
-                ptln('        <td class="field userid"> '.hsc($failure['user'][0]).' </td>',$indent);
-                ptln('        <td class="field username"> '.hsc($failure['user'][2]).' </td>',$indent);
-                ptln('        <td class="field usermail"> '.hsc($failure['user'][3]).' </td>',$indent);
-                ptln('        <td class="field usergroups"> '.hsc($failure['user'][4]).' </td>',$indent);
+                ptln('        <td class="lineno"> | '.sprintf('%0'.$digits.'d',$line).' </td>',$indent);
+                ptln('        <td class="error"> | '.$failure['error'].' </td>', $indent);
+                ptln('        <td class="field userid"> | '.hsc($failure['user'][0]).' </td>',$indent);
+                ptln('        <td class="field username"> | '.hsc($failure['user'][2]).' </td>',$indent);
+                ptln('        <td class="field usermail"> | '.hsc($failure['user'][3]).' </td>',$indent);
+                ptln('        <td class="field usergroups"> | '.hsc($failure['user'][4]).' </td>',$indent);
                 ptln('      </tr>',$indent);
             }
             ptln('    </tbody>',$indent);
@@ -847,29 +850,44 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
                 if (!utf8_check($csv)) {
                     $csv = utf8_encode($csv);
                 }
-                $raw = $this->_getcsv($csv);
-                $error = '';                        // clean out any errors from the previous line
+                $raw = $this->_getcsv($csv);    //convierte la fila string delimitado en un array
+                $error = '';                    // clean out any errors from the previous line
                 // data checks...
                 if (1 == ++$line) {
                     if ($raw[0] == 'user_id' || $raw[0] == $this->lang['user_id']) continue;    // skip headers
                 }
-                if (count($raw) < 4) {                                        // need at least four fields
+                if (count($raw) < 4) {  // need at least four fields
                     $import_fail_count++;
                     $error = sprintf($this->lang['import_error_fields'], count($raw));
                     $this->_import_failures[$line] = array('error' => $error, 'user' => $raw, 'orig' => $csv);
                     continue;
                 }
-                array_splice($raw,1,0,auth_pwgen());                          // splice in a generated password
-                $clean = $this->_cleanImportUser($raw, $error);
-                if ($clean && $this->_addImportUser($clean, $error)) {
-                    $sent = $this->_notifyUser($clean[0],$clean[1],false);
-                    if (!$sent){
-                        msg(sprintf($this->lang['import_notify_fail'],$clean[0],$clean[3]),-1);
+                //Verificamos si el usuario ya existe
+                $userData = $this->_auth->getUserData($raw[0]);
+                if ($userData) {
+                    $clean = $this->_cleanImportModifyUser($raw, $error);
+                    if ($clean && $this->_modifyImportUser($clean, $error)) {
+                        $import_success_count++;
+                        $error = "usuari modificat";
+                    } else {
+                        $import_fail_count++;
                     }
-                    $import_success_count++;
-                } else {
-                    $import_fail_count++;
-                    array_splice($raw, 1, 1);                                  // remove the spliced in password
+                    array_splice($raw,1,0,"."); //añade un 2º elemento en el array para simular el password
+                    $this->_import_failures[$line] = array('error'=>$error, 'user'=>$raw, 'orig'=>$csv);
+                }else {
+                    array_splice($raw,1,0,auth_pwgen());  //inserta un password generado automáticamente como 2º elemento del array
+                    $clean = $this->_cleanImportUser($raw, $error);
+                    if ($clean && $this->_addImportUser($clean, $error)) {
+                        $sent = $this->_notifyUser($clean[0],$clean[1],false);
+                        if (!$sent){
+                            msg(sprintf($this->lang['import_notify_fail'],$clean[0],$clean[3]),-1);
+                        }
+                        $import_success_count++;
+                        $error = "nou usuari";
+                    } else {
+                        $import_fail_count++;
+                    }
+                    array_splice($raw, 1, 1); // remove the spliced in password
                     $this->_import_failures[$line] = array('error' => $error, 'user' => $raw, 'orig' => $csv);
                 }
             }
@@ -937,6 +955,29 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
     }
 
     /**
+     * Returns cleaned user data for modify
+     * @param array $candidate raw values of line from input file
+     * @param $error
+     * @return array|bool cleaned data or false
+     */
+    protected function _cleanImportModifyUser($candidate, & $error){
+        global $INPUT;
+        $INPUT->set('userid', $candidate[0]);
+        $INPUT->set('userpass', "");
+        $INPUT->set('username', $candidate[1]);
+        $INPUT->set('usermail', $candidate[2]);
+        $INPUT->set('usergroups', $candidate[3]);
+
+        $cleaned = $this->_retrieveUser();
+
+        if (empty($cleaned[0])) {
+            $error = $this->lang['import_error_baduserid'];
+            return false;
+        }
+        return $cleaned;
+    }
+
+    /**
      * Adds imported user to auth backend
      *
      * Required a check of canDo('addUser') before
@@ -951,6 +992,28 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
             return false;
         }
 
+        return true;
+    }
+
+    /**
+     * Modify imported user to auth backend
+     * Required a check of canDo('addUser') before
+     * @param array  $user   data of user
+     * @param string &$error reference catched error message
+     * @return bool whether successful
+     */
+    protected function _modifyImportUser($user, & $error){
+        $params[0] = $user[0];
+        //$params[1]['pass'] = $user[1]; NO TOCAR: Se oculta el passwd dado que no se permite cambiarlo aquí
+        $params[1]['name'] = $user[2];
+        $params[1]['mail'] = $user[3];
+        $params[1]['grps'] = $user[4];
+        $params[1]['ignoreNull'] = TRUE;    //No se actualizarán los valores vacíos
+        $params[1]['onlyAddGroup'] = TRUE;  //Sólo se añadirán grupos nuevos, no se eliminarán grupos ya existentes
+        if (!$this->_auth->triggerUserMod('modify', $params)) {
+            $error = $this->lang['import_error_modify'] || "import_error_modify";
+            return false;
+        }
         return true;
     }
 
