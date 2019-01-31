@@ -1,0 +1,6 @@
+*
+**/images
+**/lang
+!lang/ca/*
+!admin.php
+!.gitignore
