@@ -16,6 +16,7 @@ $lang['user_id']               = 'Usuari';
 $lang['user_pass']             = 'Contrasenya';
 $lang['user_name']             = 'Nom real';
 $lang['user_mail']             = 'Correu electrònic';
+$lang['user_moodle']           = 'Moodle';
 $lang['user_groups']           = 'Grups';
 $lang['field']                 = 'Camp';
 $lang['value']                 = 'Valor';

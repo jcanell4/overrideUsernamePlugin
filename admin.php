@@ -36,9 +36,7 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
      * Constructor
      */
     public function admin_plugin_usermanager(){
-        /** @var DokuWiki_Auth_Plugin $auth */
         global $auth;
-
         $this->setupLocale();
 
         if (!isset($auth)) {
@@ -46,10 +44,8 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
         } else if (!$auth->canDo('getUsers')) {
             $this->_disabled = $this->lang['nosupport'];
         } else {
-
             // we're good to go
             $this->_auth = & $auth;
-
         }
 
         // attempt to retrieve any import failures from the session
@@ -170,7 +166,12 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
         ptln("  <table class=\"inline\">");
         ptln("    <thead>");
         ptln("      <tr>");
-        ptln("        <th>&#160;</th><th>".$this->lang["user_id"]."</th><th>".$this->lang["user_name"]."</th><th>".$this->lang["user_mail"]."</th><th>".$this->lang["user_groups"]."</th>");
+        ptln("        <th>&#160;</th>"
+                      . "<th>".$this->lang["user_id"]."</th>"
+                      . "<th>".$this->lang["user_name"]."</th>"
+                      . "<th>".$this->lang["user_mail"]."</th>"
+                      . "<th>".$this->lang["user_moodle"]."</th>"
+                      . "<th>".$this->lang["user_groups"]."</th>");
         ptln("      </tr>");
 
         ptln("      <tr>");
@@ -178,6 +179,8 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
         ptln("        <td><input type=\"text\" name=\"userid\" class=\"edit\" value=\"".$this->_htmlFilter('user')."\" /></td>");
         ptln("        <td><input type=\"text\" name=\"username\" class=\"edit\" value=\"".$this->_htmlFilter('name')."\" /></td>");
         ptln("        <td><input type=\"text\" name=\"usermail\" class=\"edit\" value=\"".$this->_htmlFilter('mail')."\" /></td>");
+        $checked = ($this->_htmlFilter('moodle')) ? " checked" : "";
+        ptln("        <td><input type=\"checkbox\" name=\"usermoodle\"$checked /></td>");
         ptln("        <td><input type=\"text\" name=\"usergroups\" class=\"edit\" value=\"".$this->_htmlFilter('grps')."\" /></td>");
         ptln("      </tr>");
         ptln("    </thead>");
@@ -190,6 +193,7 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
                  * @var string $name
                  * @var string $pass
                  * @var string $mail
+                 * @var string $moodle
                  * @var array  $grps
                  */
                 $groups = join(', ',$grps);
@@ -200,11 +204,11 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
                                                            'do' => 'admin',
                                                            'page' => 'usermanager',
                                                            'sectok' => getSecurityToken())).
-                         "\" title=\"".$this->lang['edit_prompt']."\">".hsc($user)."</a></td>");
+                                            "\" title=\"".$this->lang['edit_prompt']."\">".hsc($user)."</a></td>");
                 } else {
                     ptln("    <td>".hsc($user)."</td>");
                 }
-                ptln("      <td>".hsc($name)."</td><td>".hsc($mail)."</td><td>".hsc($groups)."</td>");
+                ptln("      <td>".hsc($name)."</td><td>".hsc($mail)."</td><td>&nbsp;".hsc($moodle)."</td><td>".hsc($groups)."</td>");
                 ptln("    </tr>");
             }
             ptln("    </tbody>");
@@ -274,14 +278,15 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
      *
      * @param string $cmd 'add' or 'modify'
      * @param string $user id of user
-     * @param array  $userdata array with name, mail, pass and grps
+     * @param array  $userdata array with name, mail, moodle, pass and grps
      * @param int    $indent
      */
-    protected function _htmlUserForm($cmd,$user='',$userdata=array(),$indent=0) {
+    protected function _htmlUserForm($cmd, $user='', $userdata=array(), $indent=0) {
         global $conf;
         global $ID;
 
         $name = $mail = $groups = '';
+        $moodle = '1';
         $notes = array();
 
         if ($user) {
@@ -305,6 +310,7 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
         $this->_htmlInputField($cmd."_username",  "username",  $this->lang["user_name"],  $name,  $this->_auth->canDo("modName"),  $indent+6);
         $this->_htmlInputField($cmd."_usermail",  "usermail",  $this->lang["user_mail"],  $mail,  $this->_auth->canDo("modMail"),  $indent+6);
         $this->_htmlInputField($cmd."_usergroups","usergroups",$this->lang["user_groups"],$groups,$this->_auth->canDo("modGroups"),$indent+6);
+        $this->_htmlInputField($cmd."_usermoodle","usermoodle",$this->lang["user_moodle"],$moodle,$this->_auth->canDo("modMoodle"),$indent+6);
 
         if ($this->_auth->canDo("modPass")) {
             if ($cmd == 'add') {
@@ -326,7 +332,7 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
 
         // save current $user, we need this to access details if the name is changed
         if ($user)
-          ptln("          <input type=\"hidden\" name=\"userid_old\"  value=\"".$user."\" />",$indent);
+            ptln("          <input type=\"hidden\" name=\"userid_old\"  value=\"".$user."\" />",$indent);
 
         $this->_htmlFilterSettings($indent+10);
 
@@ -367,6 +373,9 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
         }elseif($name == 'usermail'){
             $fieldtype = 'email';
             $autocomp  = '';
+        }elseif($name == 'usermoodle'){
+            $fieldtype = 'checkbox';
+            $autocomp  = 'checked';
         }else{
             $fieldtype = 'text';
             $autocomp  = '';
@@ -446,6 +455,7 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
             ptln('        <th class="userid"> | '.$this->lang['user_id'].'</th>',$indent);
             ptln('        <th class="username"> | '.$this->lang['user_name'].'</th>',$indent);
             ptln('        <th class="usermail"> | '.$this->lang['user_mail'].'</th>',$indent);
+            ptln('        <th class="usermoodle"> | '.$this->lang['user_moodle'].'</th>',$indent);
             ptln('        <th class="usergroups"> | '.$this->lang['user_groups'].'</th>',$indent);
             ptln('      </tr>',$indent);
             ptln('    </thead>',$indent);
@@ -457,7 +467,8 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
                 ptln('        <td class="field userid"> | '.hsc($failure['user'][0]).' </td>',$indent);
                 ptln('        <td class="field username"> | '.hsc($failure['user'][2]).' </td>',$indent);
                 ptln('        <td class="field usermail"> | '.hsc($failure['user'][3]).' </td>',$indent);
-                ptln('        <td class="field usergroups"> | '.hsc($failure['user'][4]).' </td>',$indent);
+                ptln('        <td class="field usermoodle"> | '.hsc($failure['user'][4]).' </td>',$indent);
+                ptln('        <td class="field usergroups"> | '.hsc($failure['user'][5]).' </td>',$indent);
                 ptln('      </tr>',$indent);
             }
             ptln('    </tbody>',$indent);
@@ -470,7 +481,6 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
 
     /**
      * Add an user to auth backend
-     *
      * @return bool whether succesful
      */
     protected function _addUser(){
@@ -478,7 +488,7 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
         if (!checkSecurityToken()) return false;
         if (!$this->_auth->canDo('addUser')) return false;
 
-        list($user,$pass,$name,$mail,$grps) = $this->_retrieveUser();
+        list($user,$pass,$name,$mail,$moodle,$grps) = $this->_retrieveUser();
         if (empty($user)) return false;
 
         if ($this->_auth->canDo('modPass')){
@@ -519,10 +529,18 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
             }
         }
 
-        if ($ok = $this->_auth->triggerUserMod('create', array($user,$pass,$name,$mail,$grps))) {
+        if ($this->_auth->canDo('modMoodle')){
+            if (empty($moodle)){
+                $moodle = '0';
+            }
+        } else {
+            if (!empty($moodle)){
+                return false;
+            }
+        }
 
+        if (($ok = $this->_auth->triggerUserMod('create', array($user,$pass,$name,$mail,$moodle,$grps)))) {
             msg($this->lang['add_ok'], 1);
-
             if ($INPUT->has('usernotify') && $pass) {
                 $this->_notifyUser($user,$pass);
             }
@@ -609,7 +627,7 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
         $oldinfo = $this->_auth->getUserData($olduser);
 
         // get new user data subject to change
-        list($newuser,$newpass,$newname,$newmail,$newgrps) = $this->_retrieveUser();
+        list($newuser,$newpass,$newname,$newmail,$newmoodle,$newgrps) = $this->_retrieveUser();
         if (empty($newuser)) return false;
 
         $changes = array();
@@ -635,15 +653,17 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
         }
 
         if (!empty($newpass) && $this->_auth->canDo('modPass'))
-          $changes['pass'] = $newpass;
+            $changes['pass'] = $newpass;
         if (!empty($newname) && $this->_auth->canDo('modName') && $newname != $oldinfo['name'])
-          $changes['name'] = $newname;
+            $changes['name'] = $newname;
         if (!empty($newmail) && $this->_auth->canDo('modMail') && $newmail != $oldinfo['mail'])
-          $changes['mail'] = $newmail;
+            $changes['mail'] = $newmail;
+        if (!empty($newmoodle) && $this->_auth->canDo('modMoodle') && $newmoodle != $oldinfo['moodle'])
+            $changes['moodle'] = $newmoodle;
         if (!empty($newgrps) && $this->_auth->canDo('modGroups') && $newgrps != $oldinfo['grps'])
-          $changes['grps'] = $newgrps;
+            $changes['grps'] = $newgrps;
 
-        if ($ok = $this->_auth->triggerUserMod('modify', array($olduser, $changes))) {
+        if (($ok = $this->_auth->triggerUserMod('modify', array($olduser, $changes)))) {
             msg($this->lang['update_ok'],1);
 
             if ($INPUT->has('usernotify') && $newpass) {
@@ -703,13 +723,14 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
         $user[1] = $INPUT->str('userpass');
         $user[2] = $INPUT->str('username');
         $user[3] = $INPUT->str('usermail');
-        $user[4] = explode(',',$INPUT->str('usergroups'));
+        $user[4] = $INPUT->str('usermoodle');
+        $user[5] = explode(',',$INPUT->str('usergroups'));
 
-        $user[4] = array_map('trim',$user[4]);
-        if($clean) $user[4] = array_map(array($auth,'cleanGroup'),$user[4]);
-        $user[4] = array_filter($user[4]);
-        $user[4] = array_unique($user[4]);
-        if(!count($user[4])) $user[4] = null;
+        $user[5] = array_map('trim',$user[5]);
+        if($clean) $user[5] = array_map(array($auth,'cleanGroup'),$user[5]);
+        $user[5] = array_filter($user[5]);
+        $user[5] = array_unique($user[5]);
+        if(!count($user[5])) $user[5] = null;
 
         return $user;
     }
@@ -724,12 +745,13 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
         $this->_filter = array();
 
         if ($op == 'new') {
-            list($user,$pass,$name,$mail,$grps) = $this->_retrieveUser(false);
+            list($user,$pass,$name,$mail,$moodle,$grps) = $this->_retrieveUser(false);
 
-            if (!empty($user)) $this->_filter['user'] = $user;
-            if (!empty($name)) $this->_filter['name'] = $name;
-            if (!empty($mail)) $this->_filter['mail'] = $mail;
-            if (!empty($grps)) $this->_filter['grps'] = join('|',$grps);
+            if (!empty($user))   $this->_filter['user']   = $user;
+            if (!empty($name))   $this->_filter['name']   = $name;
+            if (!empty($mail))   $this->_filter['mail']   = $mail;
+            if (!empty($moodle)) $this->_filter['moodle'] = ($moodle=="on") ? 1 : 0;
+            if (!empty($grps))   $this->_filter['grps']   = join('|',$grps);
         }
     }
 
@@ -746,10 +768,11 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
         // messy, but this way we ensure we aren't getting any additional crap from malicious users
         $filter = array();
 
-        if (isset($t_filter['user'])) $filter['user'] = $t_filter['user'];
-        if (isset($t_filter['name'])) $filter['name'] = $t_filter['name'];
-        if (isset($t_filter['mail'])) $filter['mail'] = $t_filter['mail'];
-        if (isset($t_filter['grps'])) $filter['grps'] = $t_filter['grps'];
+        if (isset($t_filter['user']))   $filter['user']   = $t_filter['user'];
+        if (isset($t_filter['name']))   $filter['name']   = $t_filter['name'];
+        if (isset($t_filter['mail']))   $filter['mail']   = $t_filter['mail'];
+        if (isset($t_filter['moodle'])) $filter['moodle'] = $t_filter['moodle'];
+        if (isset($t_filter['grps']))   $filter['grps']   = $t_filter['grps'];
 
         return $filter;
     }
@@ -798,6 +821,7 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
             $this->lang["user_id"],
             $this->lang["user_name"],
             $this->lang["user_mail"],
+            $this->lang["user_moodle"],
             $this->lang["user_groups"]
         );
 
@@ -813,7 +837,7 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
         $fd = fopen('php://output','w');
         fputcsv($fd, $column_headings);
         foreach ($user_list as $user => $info) {
-            $line = array($user, $info['name'], $info['mail'], join(',',$info['grps']));
+            $line = array($user, $info['name'], $info['mail'], $info['moodle'], join(',',$info['grps']));
             fputcsv($fd, $line);
         }
         fclose($fd);
@@ -825,7 +849,7 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
     /**
      * Import a file of users in csv format
      *
-     * csv file should have 4 columns, user_id, full name, email, groups (comma separated)
+     * csv file should have 4 columns, user_id, full name, email, moodle, groups (comma separated)
      *
      * @return bool whether successful
      */
@@ -923,10 +947,11 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
         $INPUT->set('userpass', $candidate[1]);
         $INPUT->set('username', $candidate[2]);
         $INPUT->set('usermail', $candidate[3]);
-        $INPUT->set('usergroups', $candidate[4]);
+        $INPUT->set('usermoodle', $candidate[4]);
+        $INPUT->set('usergroups', $candidate[5]);
 
         $cleaned = $this->_retrieveUser();
-        list($user,$pass,$name,$mail,$grps) = $cleaned;
+        list($user,$pass,$name,$mail,$moodle,$grps) = $cleaned;
         if (empty($user)) {
             $error = $this->lang['import_error_baduserid'];
             return false;
@@ -966,7 +991,8 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
         $INPUT->set('userpass', "");
         $INPUT->set('username', $candidate[1]);
         $INPUT->set('usermail', $candidate[2]);
-        $INPUT->set('usergroups', $candidate[3]);
+        $INPUT->set('usermoodle', $candidate[3]);
+        $INPUT->set('usergroups', $candidate[4]);
 
         $cleaned = $this->_retrieveUser();
 
@@ -1005,9 +1031,10 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
     protected function _modifyImportUser($user, & $error){
         $params[0] = $user[0];
         //$params[1]['pass'] = $user[1]; NO TOCAR: Se oculta el passwd dado que no se permite cambiarlo aquí
-        $params[1]['name'] = $user[2];
-        $params[1]['mail'] = $user[3];
-        $params[1]['grps'] = $user[4];
+        $params[1]['name']   = $user[2];
+        $params[1]['mail']   = $user[3];
+        $params[1]['moodle'] = $user[4];
+        $params[1]['grps']   = $user[5];
         $params[1]['ignoreNull'] = TRUE;    //No se actualizarán los valores vacíos
         $params[1]['onlyAddGroup'] = TRUE;  //Sólo se añadirán grupos nuevos, no se eliminarán grupos ya existentes
         if (!$this->_auth->triggerUserMod('modify', $params)) {
