@@ -723,7 +723,7 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
         $user[1] = $INPUT->str('userpass');
         $user[2] = $INPUT->str('username');
         $user[3] = $INPUT->str('usermail');
-        $user[4] = $INPUT->str('usermoodle');
+        $user[4] = $INPUT->str('usermoodle', "0");
         $user[5] = explode(',',$INPUT->str('usergroups'));
 
         $user[5] = array_map('trim',$user[5]);
