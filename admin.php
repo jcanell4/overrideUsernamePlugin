@@ -22,7 +22,7 @@ if(!defined('DOKU_PLUGIN_IMAGES')) define('DOKU_PLUGIN_IMAGES',DOKU_BASE.'lib/pl
 class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
 
     protected $_auth = null;        // auth object
-    protected $_user_total = 0;     // number of registered users
+    protected $_user_total;         // number of registered users
     protected $_filter = array();   // user selection filter(s)
     protected $_start = 0;          // index of first user to be displayed
     protected $_last = 0;           // index of the last user to be displayed
@@ -150,6 +150,9 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
         ptln("<div id=\"user__manager\">");
         ptln("<div class=\"level2\">");
 
+        if ($this->_user_total === NULL) {
+            $this->_user_total = ($this->_auth->canDo('getUserCount')) ? $this->_auth->getUserCount($this->_filter) : -1;
+        }
         if ($this->_user_total > 0) {
             ptln("<p>".sprintf($this->lang['summary'],$this->_start+1,$this->_last,$this->_user_total,$this->_auth->getUserCount())."</p>");
         } else {
@@ -180,7 +183,7 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
         ptln("        <td><input type=\"text\" name=\"username\" class=\"edit\" value=\"".$this->_htmlFilter('name')."\" /></td>");
         ptln("        <td><input type=\"text\" name=\"usermail\" class=\"edit\" value=\"".$this->_htmlFilter('mail')."\" /></td>");
         $checked = ($this->_htmlFilter('moodle')) ? " checked" : "";
-        ptln("        <td><input type=\"checkbox\" name=\"usermoodle\"$checked /></td>");
+        ptln("        <td><input type=\"checkbox\" name=\"usermoodle\" $checked /></td>");
         ptln("        <td><input type=\"text\" name=\"usergroups\" class=\"edit\" value=\"".$this->_htmlFilter('grps')."\" /></td>");
         ptln("      </tr>");
         ptln("    </thead>");
@@ -286,7 +289,7 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
         global $ID;
 
         $name = $mail = $groups = '';
-        $moodle = '1';
+        $moodle = ($this->_auth->canDo("modMoodle")) ? '1' : '0';
         $notes = array();
 
         if ($user) {
@@ -375,7 +378,8 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
             $autocomp  = '';
         }elseif($name == 'usermoodle'){
             $fieldtype = 'checkbox';
-            $autocomp  = 'checked';
+            $autocomp  = ($value=="1") ? 'checked' : '';
+            $value = "1";
         }else{
             $fieldtype = 'text';
             $autocomp  = '';
@@ -529,14 +533,8 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
             }
         }
 
-        if ($this->_auth->canDo('modMoodle')){
-            if (empty($moodle)){
-                $moodle = '0';
-            }
-        } else {
-            if (!empty($moodle)){
-                return false;
-            }
+        if (empty($moodle)){
+            $moodle = '0';
         }
 
         if (($ok = $this->_auth->triggerUserMod('create', array($user,$pass,$name,$mail,$moodle,$grps)))) {
@@ -658,7 +656,7 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
             $changes['name'] = $newname;
         if (!empty($newmail) && $this->_auth->canDo('modMail') && $newmail != $oldinfo['mail'])
             $changes['mail'] = $newmail;
-        if (!empty($newmoodle) && $this->_auth->canDo('modMoodle') && $newmoodle != $oldinfo['moodle'])
+        if ($this->_auth->canDo('modMoodle') && $newmoodle != $oldinfo['moodle'])
             $changes['moodle'] = $newmoodle;
         if (!empty($newgrps) && $this->_auth->canDo('modGroups') && $newgrps != $oldinfo['grps'])
             $changes['grps'] = $newgrps;
