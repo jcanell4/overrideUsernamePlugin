@@ -492,7 +492,7 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
         if (!checkSecurityToken()) return false;
         if (!$this->_auth->canDo('addUser')) return false;
 
-        list($user,$pass,$name,$mail,$moodle,$grps) = $this->_retrieveUser();
+        list($user,$pass,$name,$mail,$moodle,$grps,$delgrps) = $this->_retrieveUser();
         if (empty($user)) return false;
 
         if ($this->_auth->canDo('modPass')){
@@ -540,7 +540,7 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
         if (($ok = $this->_auth->triggerUserMod('create', array($user,$pass,$name,$mail,$moodle,$grps)))) {
             msg($this->lang['add_ok'], 1);
             if ($INPUT->has('usernotify') && $pass) {
-                $this->_notifyUser($user,$pass);
+                $this->_notifyUser($user, $pass, $moodle);
             }
         } else {
             msg($this->lang['add_fail'], -1);
@@ -625,7 +625,7 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
         $oldinfo = $this->_auth->getUserData($olduser);
 
         // get new user data subject to change
-        list($newuser,$newpass,$newname,$newmail,$newmoodle,$newgrps) = $this->_retrieveUser();
+        list($newuser,$newpass,$newname,$newmail,$newmoodle,$newgrps,$delgrps) = $this->_retrieveUser();
         if (empty($newuser)) return false;
 
         $changes = array();
@@ -658,15 +658,31 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
             $changes['mail'] = $newmail;
         if ($this->_auth->canDo('modMoodle') && $newmoodle != $oldinfo['moodle'])
             $changes['moodle'] = $newmoodle;
-        if (!empty($newgrps) && $this->_auth->canDo('modGroups') && $newgrps != $oldinfo['grps'])
-            $changes['grps'] = $newgrps;
+        if (!empty($newgrps) && $this->_auth->canDo('modGroups')) {
+            $ogrps = explode(",", $oldinfo['grps']);
+            $ngrps = explode(",", $newgrps);
+            $change = FALSE;
+            foreach($ngrps as $v){
+                $change = $change || in_array($v, $ogrps);
+            }
+            if ($change) $changes['grps'] = $newgrps;
+        }
+        if (!empty($delgrps) && $this->_auth->canDo('modGroups')) {
+            $ogrps = explode(",", $oldinfo['grps']);
+            $ngrps = explode(",", $delgrps);
+            $change = FALSE;
+            foreach($ngrps as $v){
+                $change = $change || in_array($v, $ogrps);
+            }
+            if ($change) $changes['delgrps'] = $delgrps;
+        }
 
         if (($ok = $this->_auth->triggerUserMod('modify', array($olduser, $changes)))) {
             msg($this->lang['update_ok'],1);
 
             if ($INPUT->has('usernotify') && $newpass) {
                 $notify = empty($changes['user']) ? $olduser : $newuser;
-                $this->_notifyUser($notify,$newpass);
+                $this->_notifyUser($notify, $newpass, $newmoodle);
             }
 
             // invalidate all sessions
@@ -688,19 +704,18 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
      *
      * @param string $user         id of user
      * @param string $password     plain text
+     * @param bool   $moodle       0=contrasenya de la wiki, 1=es valida al moodle
      * @param bool   $status_alert whether status alert should be shown
      * @return bool whether succesful
      */
-    protected function _notifyUser($user, $password, $status_alert=true) {
-
-        if ($sent = auth_sendPassword($user,$password)) {
+    protected function _notifyUser($user, $password, $moodle, $status_alert=true) {
+        $password = ($moodle===0) ? $password : "Utilitza la contrasenya de moodle";
+        if (($sent = auth_sendPassword($user, $password))) {
             if ($status_alert) {
                 msg($this->lang['notify_ok'], 1);
             }
-        } else {
-            if ($status_alert) {
-                msg($this->lang['notify_fail'], -1);
-            }
+        }else if ($status_alert) {
+            msg($this->lang['notify_fail'], -1);
         }
 
         return $sent;
@@ -723,12 +738,20 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
         $user[3] = $INPUT->str('usermail');
         $user[4] = $INPUT->str('usermoodle', "0");
         $user[5] = explode(',',$INPUT->str('usergroups'));
+        $user[6] = explode(',',$INPUT->str('userdeletegroups'));
 
         $user[5] = array_map('trim',$user[5]);
         if($clean) $user[5] = array_map(array($auth,'cleanGroup'),$user[5]);
         $user[5] = array_filter($user[5]);
         $user[5] = array_unique($user[5]);
         if(!count($user[5])) $user[5] = null;
+
+        $user[6] = array_map('trim', $user[6]);
+        if ($clean)
+            $user[6] = array_map(array($auth,'cleanGroup'), $user[6]);
+        $user[6] = array_filter($user[6]);
+        $user[6] = array_unique($user[6]);
+        if(!count($user[6])) $user[6] = null;
 
         return $user;
     }
@@ -743,7 +766,7 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
         $this->_filter = array();
 
         if ($op == 'new') {
-            list($user,$pass,$name,$mail,$moodle,$grps) = $this->_retrieveUser(false);
+            list($user,$pass,$name,$mail,$moodle,$grps,$delgrps) = $this->_retrieveUser(false);
 
             if (!empty($user))   $this->_filter['user']   = $user;
             if (!empty($name))   $this->_filter['name']   = $name;
@@ -869,16 +892,15 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
         $fd = fopen($_FILES['import']['tmp_name'],'r');
         if ($fd) {
             while($csv = fgets($fd)){
-                if (!utf8_check($csv)) {
-                    $csv = utf8_encode($csv);
-                }
+                if (empty(trim($csv))) continue; //ignora líneas vacías
+                if (!utf8_check($csv)) $csv = utf8_encode($csv);
                 $raw = $this->_getcsv($csv);    //convierte la fila string delimitado en un array
                 $error = '';                    // clean out any errors from the previous line
-                // data checks...
+
                 if (1 == ++$line) {
                     if ($raw[0] == 'user_id' || $raw[0] == $this->lang['user_id']) continue;    // skip headers
                 }
-                if (count($raw) < 4) {  // need at least four fields
+                if (count($raw) < 5) {  // need at least 5 fields
                     $import_fail_count++;
                     $error = sprintf($this->lang['import_error_fields'], count($raw));
                     $this->_import_failures[$line] = array('error' => $error, 'user' => $raw, 'orig' => $csv);
@@ -897,10 +919,12 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
                     array_splice($raw,1,0,"."); //añade un 2º elemento en el array para simular el password
                     $this->_import_failures[$line] = array('error'=>$error, 'user'=>$raw, 'orig'=>$csv);
                 }else {
-                    array_splice($raw,1,0,auth_pwgen());  //inserta un password generado automáticamente como 2º elemento del array
+                    if (!$clean[4]) {  //valor 0, '', null: usuario no se valida en moodle
+                        array_splice($raw,1,0,auth_pwgen());  //inserta un password generado automáticamente como 2º elemento del array
+                    }
                     $clean = $this->_cleanImportUser($raw, $error);
                     if ($clean && $this->_addImportUser($clean, $error)) {
-                        $sent = $this->_notifyUser($clean[0],$clean[1],false);
+                        $sent = $this->_notifyUser($clean[0], $clean[1], $clean[4], false);
                         if (!$sent){
                             msg(sprintf($this->lang['import_notify_fail'],$clean[0],$clean[3]),-1);
                         }
@@ -947,9 +971,10 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
         $INPUT->set('usermail', $candidate[3]);
         $INPUT->set('usermoodle', $candidate[4]);
         $INPUT->set('usergroups', $candidate[5]);
+        $INPUT->set('userdeletegroups', $candidate[6]);
 
         $cleaned = $this->_retrieveUser();
-        list($user,$pass,$name,$mail,$moodle,$grps) = $cleaned;
+        list($user,$pass,$name,$mail,$moodle,$grps,$delgrps) = $cleaned;
         if (empty($user)) {
             $error = $this->lang['import_error_baduserid'];
             return false;
@@ -991,6 +1016,8 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
         $INPUT->set('usermail', $candidate[2]);
         $INPUT->set('usermoodle', $candidate[3]);
         $INPUT->set('usergroups', $candidate[4]);
+        if (!empty($candidate[5]))
+            $INPUT->set('userdeletegroups', $candidate[5]);
 
         $cleaned = $this->_retrieveUser();
 
@@ -1033,6 +1060,7 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
         $params[1]['mail']   = $user[3];
         $params[1]['moodle'] = $user[4];
         $params[1]['grps']   = $user[5];
+        $params[1]['delgrps']= $user[6];
         $params[1]['ignoreNull'] = TRUE;    //No se actualizarán los valores vacíos
         $params[1]['onlyAddGroup'] = TRUE;  //Sólo se añadirán grupos nuevos, no se eliminarán grupos ya existentes
         if (!$this->_auth->triggerUserMod('modify', $params)) {

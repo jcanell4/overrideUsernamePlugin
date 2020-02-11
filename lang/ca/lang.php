@@ -16,7 +16,7 @@ $lang['user_id']               = 'Usuari';
 $lang['user_pass']             = 'Contrasenya';
 $lang['user_name']             = 'Nom real';
 $lang['user_mail']             = 'Correu electrònic';
-$lang['user_moodle']           = 'Moodle';
+$lang['user_moodle']           = 'Validació a Moodle';
 $lang['user_groups']           = 'Grups';
 $lang['field']                 = 'Camp';
 $lang['value']                 = 'Valor';
@@ -54,3 +54,5 @@ $lang['notify_fail']           = 'No s\'ha pogut enviar el correu de notificaci�
 $lang['import']      = 'Importar Usuaris';
 $lang['line']        = 'línia';
 $lang['error']       = 'Missatge';
+$lang['import_error_fields']  = "Nombre insuficient de camps - s'han trobat %d de 5: '${lang['user_id']}', '${lang['user_name']}', '${lang['user_mail']}', '${lang['user_moodle']}', '${lang['user_groups']}', (opcional) 'Eliminar Grups'";
+
