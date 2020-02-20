@@ -659,20 +659,16 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
         if ($this->_auth->canDo('modMoodle') && $newmoodle != $oldinfo['moodle'])
             $changes['moodle'] = $newmoodle;
         if (!empty($newgrps) && $this->_auth->canDo('modGroups')) {
-            $ogrps = explode(",", $oldinfo['grps']);
-            $ngrps = explode(",", $newgrps);
             $change = FALSE;
-            foreach($ngrps as $v){
-                $change = $change || in_array($v, $ogrps);
+            foreach($newgrps as $v){
+                $change = $change || in_array($v, $oldinfo['grps']);
             }
             if ($change) $changes['grps'] = $newgrps;
         }
         if (!empty($delgrps) && $this->_auth->canDo('modGroups')) {
-            $ogrps = explode(",", $oldinfo['grps']);
-            $ngrps = explode(",", $delgrps);
             $change = FALSE;
-            foreach($ngrps as $v){
-                $change = $change || in_array($v, $ogrps);
+            foreach($delgrps as $v){
+                $change = $change || in_array($v, $oldinfo['grps']);
             }
             if ($change) $changes['delgrps'] = $delgrps;
         }
@@ -743,15 +739,12 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
         $user[5] = array_map('trim',$user[5]);
         if($clean) $user[5] = array_map(array($auth,'cleanGroup'),$user[5]);
         $user[5] = array_filter($user[5]);
-        $user[5] = array_unique($user[5]);
-        if(!count($user[5])) $user[5] = null;
+        $user[5] = (count($user[5])) ? array_values(array_unique($user[5])) : null;
 
         $user[6] = array_map('trim', $user[6]);
-        if ($clean)
-            $user[6] = array_map(array($auth,'cleanGroup'), $user[6]);
+        if ($clean) $user[6] = array_map(array($auth,'cleanGroup'), $user[6]);
         $user[6] = array_filter($user[6]);
-        $user[6] = array_unique($user[6]);
-        if(!count($user[6])) $user[6] = null;
+        $user[6] = (count($user[6])) ? array_values(array_unique($user[6])) : null;
 
         return $user;
     }
