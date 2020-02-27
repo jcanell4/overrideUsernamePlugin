@@ -35,7 +35,7 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
     /**
      * Constructor
      */
-    public function admin_plugin_usermanager(){
+    public function __construct(){
         global $auth;
         $this->setupLocale();
 
@@ -49,7 +49,7 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
         }
 
         // attempt to retrieve any import failures from the session
-        if ($_SESSION['import_failures']){
+        if (!empty($_SESSION['import_failures'])){
             $this->_import_failures = $_SESSION['import_failures'];
         }
     }
@@ -58,11 +58,11 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
       * Return prompt for admin menu
       */
     public function getMenuText($language) {
-
-        if (!is_null($this->_auth))
-          return parent::getMenuText($language);
-
-        return $this->getLang('menu').' '.$this->_disabled;
+        if (!is_null($this->_auth)) {
+            return parent::getMenuText($language);
+        }else {
+            return $this->getLang('menu').' '.$this->_disabled;
+        }
     }
 
     /**
@@ -211,7 +211,7 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
                 } else {
                     ptln("    <td>".hsc($user)."</td>");
                 }
-                ptln("      <td>".hsc($name)."</td><td>".hsc($mail)."</td><td>&nbsp;".hsc($moodle)."</td><td>".hsc($groups)."</td>");
+                ptln("      <td>".hsc($name)."</td><td>".hsc($mail)."</td><td>&nbsp;".$moodle."</td><td>".hsc($groups)."</td>");
                 ptln("    </tr>");
             }
             ptln("    </tbody>");
@@ -411,7 +411,6 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
 
     /**
      * Print hidden inputs with the current filter values
-     *
      * @param int $indent
      */
     protected function _htmlFilterSettings($indent=0) {
@@ -425,7 +424,6 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
 
     /**
      * Print import form and summary of previous import
-     *
      * @param int $indent
      */
     protected function _htmlImportForm($indent=0) {
@@ -551,7 +549,6 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
 
     /**
      * Delete user from auth backend
-     *
      * @return bool whether succesful
      */
     protected function _deleteUser(){
@@ -611,7 +608,6 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
 
     /**
      * Modify user in the auth backend (modified user data has been recieved)
-     *
      * @return bool whether succesful
      */
     protected function _modifyUser(){
@@ -759,7 +755,7 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
         $this->_filter = array();
 
         if ($op == 'new') {
-            list($user,$pass,$name,$mail,$moodle,$grps,$delgrps) = $this->_retrieveUser(false);
+            list($user,/* $pass */,$name,$mail,$moodle,$grps,/* $delgrps */) = $this->_retrieveUser(false);
 
             if (!empty($user))   $this->_filter['user']   = $user;
             if (!empty($name))   $this->_filter['name']   = $name;
@@ -771,7 +767,6 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
 
     /**
      * Get the current search terms
-     *
      * @return array
      */
     protected function _retrieveFilter() {
@@ -839,7 +834,7 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
             $this->lang["user_groups"]
         );
 
-        // ==============================================================================================
+        // =================================
         // GENERATE OUTPUT
         // normal headers for downloading...
         header('Content-type: text/csv;charset=utf-8');
@@ -862,8 +857,7 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
 
     /**
      * Import a file of users in csv format
-     *
-     * csv file should have 4 columns, user_id, full name, email, moodle, groups (comma separated)
+     * csv file should have 5 columns, user_id, full name, email, moodle, groups (comma separated)
      *
      * @return bool whether successful
      */
@@ -927,7 +921,7 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
                         $import_fail_count++;
                     }
                     array_splice($raw, 1, 1); // remove the spliced in password
-                    $this->_import_failures[$line] = array('error' => $error, 'user' => $raw, 'orig' => $csv);
+                    $this->_import_failures[$line] = array('error'=>$error, 'user'=>$raw, 'orig'=>$csv);
                 }
             }
             msg(sprintf($this->lang['import_success_count'], ($import_success_count+$import_fail_count), $import_success_count),($import_success_count ? 1 : -1));
@@ -949,9 +943,8 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
 
     /**
      * Returns cleaned user data
-     *
      * @param array $candidate raw values of line from input file
-     * @param $error
+     * @param string $error
      * @return array|bool cleaned data or false
      */
     protected function _cleanImportUser($candidate, & $error){
@@ -967,7 +960,8 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
         $INPUT->set('userdeletegroups', $candidate[6]);
 
         $cleaned = $this->_retrieveUser();
-        list($user,$pass,$name,$mail,$moodle,$grps,$delgrps) = $cleaned;
+        list($user,/* $pass */,$name,$mail,/* $moodle */,/* $grps */,/* $delgrps */) = $cleaned;
+
         if (empty($user)) {
             $error = $this->lang['import_error_baduserid'];
             return false;
@@ -1023,7 +1017,6 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
 
     /**
      * Adds imported user to auth backend
-     *
      * Required a check of canDo('addUser') before
      *
      * @param array  $user   data of user
@@ -1067,8 +1060,7 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
      * Downloads failures as csv file
      */
     protected function _downloadImportFailures(){
-
-        // ==============================================================================================
+        // =================================
         // GENERATE OUTPUT
         // normal headers for downloading...
         header('Content-type: text/csv;charset=utf-8');
