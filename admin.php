@@ -713,16 +713,12 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
         if (!empty($newgrps) && $this->_auth->canDo('modGroups')) {
             $change = FALSE;
             foreach($newgrps as $v){
-                $change = $change || in_array($v, $oldinfo['grps']);
+                $change = $change || !in_array($v, $oldinfo['grps']);
             }
             if ($change) $changes['grps'] = $newgrps;
         }
         if (!empty($delgrps) && $this->_auth->canDo('modGroups')) {
-            $change = FALSE;
-            foreach($delgrps as $v){
-                $change = $change || in_array($v, $oldinfo['grps']);
-            }
-            if ($change) $changes['delgrps'] = $delgrps;
+            $changes['delgrps'] = $delgrps;
         }
 
         if (($ok = $this->_auth->triggerUserMod('modify', array($olduser, $changes)))) {
