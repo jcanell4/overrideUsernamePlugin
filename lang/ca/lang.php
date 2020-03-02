@@ -17,6 +17,7 @@ $lang['user_pass']             = 'Contrasenya';
 $lang['user_name']             = 'Nom real';
 $lang['user_mail']             = 'Correu electrònic';
 $lang['user_moodle']           = 'Validació a Moodle';
+$lang['user_editor']           = 'Editor de l\'usuari';
 $lang['user_groups']           = 'Grups';
 $lang['field']                 = 'Camp';
 $lang['value']                 = 'Valor';
