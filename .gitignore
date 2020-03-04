@@ -2,7 +2,7 @@
 **/images
 **/lang
 !lang/ca/*
-!lang/ca/import.txt
 !admin.php
 !.gitignore
 !style.css
+
