@@ -14,6 +14,9 @@
 if(!defined('DOKU_INC')) die();
 
 if(!defined('DOKU_PLUGIN_IMAGES')) define('DOKU_PLUGIN_IMAGES',DOKU_BASE.'lib/plugins/usermanager/images/');
+require_once (DOKU_INC . 'lib/plugins/ajaxcommand/defkeys/AdminKeys.php');
+
+
 
 /**
  * All DokuWiki plugins to extend the admin function
@@ -389,7 +392,7 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
         }elseif($name == 'usereditor'){
             $fieldtype = 'text';
             $autocomp  = '';
-            $value = "ACE";
+            $value = AdminKeys::KEY_ACE;
         }else{
             $fieldtype = 'text';
             $autocomp  = '';
@@ -428,10 +431,12 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
         echo str_pad('', $indent);
 
         if($name == 'usereditor'){
-            $selected = ($value=="ACE") ? " selected" : "";
-            $options[] = "<option value=\"ACE\"$selected>ACE</option>";
-            $selected = ($value=="Dojo") ? " selected" : "";
-            $options[] = "<option value=\"Dojo\"$selected>Dojo</option>";
+            $editorId = AdminKeys::KEY_ACE;
+            $selected = ($value==AdminKeys::KEY_ACE) ? " selected" : "";
+            $options[] = "<option value=\"$editorId\"$selected>$editorId</option>";
+            $editorId = AdminKeys::KEY_DOJO;
+            $selected = ($value==AdminKeys::KEY_DOJO) ? " selected" : "";
+            $options[] = "<option value=\"$editorId\"$selected>$editorId</option>";
         }
 
         echo "<tr $class>";
@@ -586,7 +591,7 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
         }
 
         if (empty($editor)){
-            $editor = 'ACE';
+            $editor = AdminKeys::KEY_ACE;
         }
 
         if (($ok = $this->_auth->triggerUserMod('create', array($user,$pass,$name,$mail,$moodle,$editor,$grps)))) {
@@ -781,7 +786,7 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
         $user[2] = $INPUT->str('username');
         $user[3] = $INPUT->str('usermail');
         $user[4] = $INPUT->str('usermoodle', "0");
-        $user[5] = $INPUT->str('usereditor', "ACE");
+        $user[5] = $INPUT->str('usereditor', AdminKeys::KEY_ACE);
         $user[6] = explode(',',$INPUT->str('usergroups'));
         $user[7] = explode(',',$INPUT->str('userdeletegroups'));
 
