@@ -12,11 +12,7 @@
  */
 // must be run within Dokuwiki
 if(!defined('DOKU_INC')) die();
-
 if(!defined('DOKU_PLUGIN_IMAGES')) define('DOKU_PLUGIN_IMAGES',DOKU_BASE.'lib/plugins/usermanager/images/');
-require_once (DOKU_INC . 'lib/plugins/ajaxcommand/defkeys/AdminKeys.php');
-
-
 
 /**
  * All DokuWiki plugins to extend the admin function
