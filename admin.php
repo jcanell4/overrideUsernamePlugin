@@ -703,20 +703,21 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
 
         if (!empty($newpass) && $this->_auth->canDo('modPass'))
             $changes['pass'] = $newpass;
-        if (!empty($newname) && $this->_auth->canDo('modName') && $newname != $oldinfo['name'])
+        if (!empty($newname) && $newname != $oldinfo['name'] && $this->_auth->canDo('modName'))
             $changes['name'] = $newname;
-        if (!empty($newmail) && $this->_auth->canDo('modMail') && $newmail != $oldinfo['mail'])
+        if (!empty($newmail) && $newmail != $oldinfo['mail'] && $this->_auth->canDo('modMail'))
             $changes['mail'] = $newmail;
-        if ($this->_auth->canDo('modMoodle') && $newmoodle != $oldinfo['moodle'])
+        if ($newmoodle != $oldinfo['moodle'] && $this->_auth->canDo('modMoodle'))
             $changes['moodle'] = $newmoodle;
-        if ($this->_auth->canDo('modEditor') && $neweditor != $oldinfo['editor'])
+        if ($neweditor != $oldinfo['editor'] && $this->_auth->canDo('modEditor'))
             $changes['editor'] = $neweditor;
         if (!empty($newgrps) && $this->_auth->canDo('modGroups')) {
-            $change = FALSE;
-            foreach($newgrps as $v){
-                $change = $change || !in_array($v, $oldinfo['grps']);
+            if (!empty(array_merge(array_diff($newgrps, $oldinfo['grps']), array_diff($oldinfo['grps'], $newgrps)))) {
+                $changes['grps'] = $newgrps;
             }
-            if ($change) $changes['grps'] = $newgrps;
+        }
+        if (empty($newgrps) && $this->_auth->canDo('modGroups')) {  //ha eliminat tots els grups
+            $changes['grps'] = array('user');
         }
         if (!empty($delgrps) && $this->_auth->canDo('modGroups')) {
             $changes['delgrps'] = $delgrps;
