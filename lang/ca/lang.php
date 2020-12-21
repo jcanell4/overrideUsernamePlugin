@@ -1,6 +1,7 @@
 <?php
+
 /**
- * Catalan language file
+ * @license    GPL 2 (http://www.gnu.org/licenses/gpl.html)
  *
  * @author Carles Bellver <carles.bellver@gmail.com>
  * @author carles.bellver@gmail.com
@@ -18,6 +19,8 @@ $lang['user_name']             = 'Nom real';
 $lang['user_mail']             = 'Correu electrònic';
 $lang['user_moodle']           = 'Validació a Moodle';
 $lang['user_editor']           = 'Editor de l\'usuari';
+$lang['passchk']               = 'Repetiu la contrasenya';
+$lang['import_error_fields']   = "Nombre insuficient de camps - s'han trobat %d de 5: '${lang['user_id']}', '${lang['user_name']}', '${lang['user_mail']}', '${lang['user_moodle']}', '${lang['user_groups']}', (opcional) 'Eliminar Grups'";
 $lang['user_groups']           = 'Grups';
 $lang['field']                 = 'Camp';
 $lang['value']                 = 'Valor';
@@ -51,9 +54,3 @@ $lang['add_ok']                = 'L\'usuari s\'ha afegit amb èxit';
 $lang['add_fail']              = 'No s\'ha pogut afegir l\'usuari';
 $lang['notify_ok']             = 'S\'ha enviat el correu de notificació';
 $lang['notify_fail']           = 'No s\'ha pogut enviar el correu de notificació';
-
-$lang['import']      = 'Importar Usuaris';
-$lang['line']        = 'línia';
-$lang['error']       = 'Missatge';
-$lang['import_error_fields']  = "Nombre insuficient de camps - s'han trobat %d de 5: '${lang['user_id']}', '${lang['user_name']}', '${lang['user_mail']}', '${lang['user_moodle']}', '${lang['user_groups']}', (opcional) 'Eliminar Grups'";
-
