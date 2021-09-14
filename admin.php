@@ -836,13 +836,14 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
         if (!empty($newmail) && $this->_auth->canDo('modMail') && $newmail != $oldinfo['mail']) {
             $changes['mail'] = $newmail;
         }
-	//[END: IOC]
+	//[START: IOC]
         if ($this->_auth->canDo('modMoodle') && $newmoodle != $oldinfo['moodle']) {
             $changes['moodle'] = $newmoodle;
         }
         if ($this->_auth->canDo('modEditor') && $neweditor != $oldinfo['editor']) {
             $changes['editor'] = $neweditor;
         }
+        //[END: IOC]
         //[START: IOC]
 //        if (!empty($newgrps) && $this->_auth->canDo('modGroups') && $newgrps != $oldinfo['grps']) {
 //            $changes['grps'] = $newgrps;
