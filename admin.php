@@ -843,15 +843,15 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
         if ($this->_auth->canDo('modEditor') && $neweditor != $oldinfo['editor']) {
             $changes['editor'] = $neweditor;
         }
-	//if (!empty($newgrps) && $this->_auth->canDo('modGroups') && $newgrps != $oldinfo['grps']) {
-        if (!empty($newgrps) && $this->_auth->canDo('modGroups')) {
-            $change = FALSE;
-            foreach($newgrps as $v){
-                $change = $change || in_array($v, $oldinfo['grps']);
-            }
-	    //$changes['grps'] = $newgrps;
-            if ($change) $changes['grps'] = $newgrps;
+        //[START: IOC]
+//        if (!empty($newgrps) && $this->_auth->canDo('modGroups') && $newgrps != $oldinfo['grps']) {
+//            $changes['grps'] = $newgrps;
+//        }
+	if ($this->_auth->canDo('modGroups')) {
+            $changes['grps'] = (empty($newgrps)) ? ["user"] : $newgrps;
         }
+        //[END: IOC]
+        //[START: IOC]
         if (!empty($delgrps) && $this->_auth->canDo('modGroups')) {
             $change = FALSE;
             foreach($delgrps as $v){
