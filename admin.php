@@ -510,8 +510,8 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
         if($name == 'usereditor'){
             $selected = ($value=="ACE") ? " selected" : "";
             $options[] = "<option value=\"ACE\"$selected>ACE</option>";
-            $selected = ($value=="Dojo") ? " selected" : "";
-            $options[] = "<option value=\"Dojo\"$selected>Dojo</option>";
+            $selected = ($value=="DOJO") ? " selected" : "";
+            $options[] = "<option value=\"DOJO\"$selected>DOJO</option>";
         }
 
         echo "<tr $class>";
