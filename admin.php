@@ -794,6 +794,7 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
 
         // get new user data subject to change
         //[START: IOC]
+        $do_param = $INPUT->str('call');
 	//list($newuser,$newpass,$newname,$newmail,$newgrps,$passconfirm) = $this->_retrieveUser();
         list($newuser,$newpass,$newname,$newmail,$newmoodle,$neweditor,$newgrps,$delgrps,$passconfirm) = $this->_retrieveUser();
         //[END: IOC]
@@ -837,28 +838,28 @@ class admin_plugin_usermanager extends DokuWiki_Admin_Plugin {
             $changes['mail'] = $newmail;
         }
 	//[START: IOC]
-        if ($this->_auth->canDo('modMoodle') && $newmoodle != $oldinfo['moodle']) {
-            $changes['moodle'] = $newmoodle;
-        }
-        if ($this->_auth->canDo('modEditor') && $neweditor != $oldinfo['editor']) {
-            $changes['editor'] = $neweditor;
-        }
-        //[END: IOC]
-        //[START: IOC]
-//        if (!empty($newgrps) && $this->_auth->canDo('modGroups') && $newgrps != $oldinfo['grps']) {
-//            $changes['grps'] = $newgrps;
-//        }
-	if ($this->_auth->canDo('modGroups')) {
-            $changes['grps'] = (empty($newgrps)) ? ["user"] : $newgrps;
-        }
-        //[END: IOC]
-        //[START: IOC]
-        if (!empty($delgrps) && $this->_auth->canDo('modGroups')) {
-            $change = FALSE;
-            foreach($delgrps as $v){
-                $change = $change || in_array($v, $oldinfo['grps']);
+        if($do_param==="admin_task"){
+            if ($this->_auth->canDo('modMoodle') && $newmoodle != $oldinfo['moodle']) {
+                $changes['moodle'] = $newmoodle;
             }
-            if ($change) $changes['delgrps'] = $delgrps;
+            if ($this->_auth->canDo('modEditor') && $neweditor != $oldinfo['editor']) {
+                $changes['editor'] = $neweditor;
+            }
+    //        if (!empty($newgrps) && $this->_auth->canDo('modGroups') && $newgrps != $oldinfo['grps']) {
+    //            $changes['grps'] = $newgrps;
+    //        }
+            if ($this->_auth->canDo('modGroups')) {
+                $changes['grps'] = (empty($newgrps)) ? ["user"] : $newgrps;
+            }
+            //[END: IOC]
+            //[START: IOC]
+            if (!empty($delgrps) && $this->_auth->canDo('modGroups')) {
+                $change = FALSE;
+                foreach($delgrps as $v){
+                    $change = $change || in_array($v, $oldinfo['grps']);
+                }
+                if ($change) $changes['delgrps'] = $delgrps;
+            }
         }
         //[END: IOC]
         if (($ok = $this->_auth->triggerUserMod('modify', array($olduser, $changes)))) {
